@@ -1,0 +1,15 @@
+repositories:
+  Universal_Robots_ROS2_Description:
+    type: git
+    url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Description.git
+    version: 17017356c7599b1b550a8a716fb60649fe6fb9e5
+
+  Universal_Robots_ROS2_Gazebo_Simulation:
+    type: git
+    url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Gazebo_Simulation.git
+    version: 93b25c6aae7efd4845633cd01f45403a2cc592e6
+
+  ros2_robotiq_gripper:
+    type: git
+    url: https://github.com/PickNikRobotics/ros2_robotiq_gripper.git
+    version: e5656b1c1926864899dfb133dc68d483cfb1d9cc

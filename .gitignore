@@ -1,0 +1,20 @@
+# VSCode
+.vscode/
+*.vc.db
+
+# ROS2 & colcon
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temp / OS files
+*.swp
+*.swo
+.DS_Store
+
+# Gazebo generated
+*.state
