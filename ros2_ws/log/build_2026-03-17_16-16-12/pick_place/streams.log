@@ -1,0 +1,24 @@
+[0.904s] Invoking command in '/root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place': PS1=\[\033[01;35m\]kinova\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ PYTHONPATH=/root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/lib/python3.12/site-packages:${PYTHONPATH} VIRTUAL_ENV_PROMPT=(ros_python) /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place/build --no-deps symlink_data
+[1.169s] running develop
+[1.319s] running egg_info
+[1.319s] creating pick_place.egg-info
+[1.335s] writing pick_place.egg-info/PKG-INFO
+[1.335s] writing dependency_links to pick_place.egg-info/dependency_links.txt
+[1.335s] writing entry points to pick_place.egg-info/entry_points.txt
+[1.335s] writing requirements to pick_place.egg-info/requires.txt
+[1.335s] writing top-level names to pick_place.egg-info/top_level.txt
+[1.335s] writing manifest file 'pick_place.egg-info/SOURCES.txt'
+[1.364s] reading manifest file 'pick_place.egg-info/SOURCES.txt'
+[1.365s] writing manifest file 'pick_place.egg-info/SOURCES.txt'
+[1.380s] running build_ext
+[1.390s] Creating /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/lib/python3.12/site-packages/pick-place.egg-link (link to .)
+[1.391s] Installing pick_place script to /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/lib/pick_place
+[1.391s] 
+[1.392s] Installed /root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place
+[1.392s] running symlink_data
+[1.392s] creating /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/share/ament_index
+[1.392s] creating /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/share/ament_index/resource_index
+[1.392s] creating /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/share/ament_index/resource_index/packages
+[1.392s] symbolically linking /root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place/resource/pick_place -> /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/share/ament_index/resource_index/packages
+[1.393s] symbolically linking /root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place/package.xml -> /root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/share/pick_place
+[1.419s] Invoked command in '/root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place' returned '0': PS1=\[\033[01;35m\]kinova\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ PYTHONPATH=/root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/root/workspaces/pick-and-place-conveyor/ros2_ws/install/pick_place/lib/python3.12/site-packages:${PYTHONPATH} VIRTUAL_ENV_PROMPT=(ros_python) /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /root/workspaces/pick-and-place-conveyor/ros2_ws/build/pick_place/build --no-deps symlink_data
