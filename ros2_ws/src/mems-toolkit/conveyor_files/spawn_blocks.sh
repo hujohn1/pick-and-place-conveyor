@@ -9,22 +9,18 @@ TABLE_SIZE_Y="${TABLE_SIZE_Y:-1.0}"
 TABLE_THICK="${TABLE_THICK:-0.05}"
 
 X="${X:-0.45}"
-SPACING="${SPACING:-0.08}"
-BLOCK_SIZE="${BLOCK_SIZE:-0.04}"
 BLOCK_DROP="${BLOCK_DROP:-0.01}"
 
-# Mass OR density (set one). Defaults to 20 g if neither is set.
-BLOCK_MASS="${BLOCK_MASS:-0.02}"       # kg
-BLOCK_DENSITY="${BLOCK_DENSITY:-}"     # kg/m^3; if set, overrides BLOCK_MASS
+BLOCK_MASS="${BLOCK_MASS:-0.02}"
+BLOCK_DENSITY="${BLOCK_DENSITY:-}"
 
-# >>> More realistic friction and contact parameters <<<
-BLOCK_MU="${BLOCK_MU:-2.0}"             # High, but not extreme
-BLOCK_MU2="${BLOCK_MU2:-2.0}"            # High, but not extreme
-BLOCK_TORSION="${BLOCK_TORSION:-0.5}"    # Torsional friction
-BLOCK_SLIP1="${BLOCK_SLIP1:-0.0}"        # Slip
-BLOCK_SLIP2="${BLOCK_SLIP2:-0.0}"        # Slip
-BLOCK_KP="${BLOCK_KP:-1e5}"              # Reduced contact stiffness (100,000)
-BLOCK_KD="${BLOCK_KD:-10.0}"             # Increased damping for stability
+BLOCK_MU="${BLOCK_MU:-2.0}"
+BLOCK_MU2="${BLOCK_MU2:-2.0}"
+BLOCK_TORSION="${BLOCK_TORSION:-0.5}"
+BLOCK_SLIP1="${BLOCK_SLIP1:-0.0}"
+BLOCK_SLIP2="${BLOCK_SLIP2:-0.0}"
+BLOCK_KP="${BLOCK_KP:-1e5}"
+BLOCK_KD="${BLOCK_KD:-10.0}"
 BLOCK_MIN_DEPTH="${BLOCK_MIN_DEPTH:-1e-5}"
 BLOCK_MAX_VEL="${BLOCK_MAX_VEL:-0.10}"
 
@@ -32,13 +28,27 @@ ALLOW_RENAME="${ALLOW_RENAME:-false}"
 SWEEP_SUFFIXES="${SWEEP_SUFFIXES:-true}"
 MAX_SUFFIX="${MAX_SUFFIX:-9}"
 WORLD_SDF="${WORLD_SDF:-/tmp/lab06_empty_usercmd.world.sdf}"
+
+# ---------- Block sizes (meters) ----------
+# Five different sizes, lined up next to each other along the y-axis.
+# Edit these to change how big each block is.
+BLOCK_SIZE_1="0.04"   # red    — small
+BLOCK_SIZE_2="0.04"   # blue   — medium-small
+BLOCK_SIZE_3="0.05"   # green  — medium
+BLOCK_SIZE_4="0.06"   # yellow — medium-large
+BLOCK_SIZE_5="0.07"   # orange — large
+
+# Gap between block centers in meters.
+# 0.08 = blocks sit close together without overlapping.
+# Increase this to add space between them.
+BLOCK_SPACING="0.08"
 # -------------------------------------------------
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "ERROR: $1 not found"; exit 1; }; }
 need gz
 need python3
 
-# ---------- ensure a world that exposes /world/<WORLD>/set_pose ----------
+# ---------- ensure world ----------
 ensure_world() {
   if ! gz service -l | grep -q "/world/"; then
     cat > "$WORLD_SDF" <<'SDF'
@@ -71,7 +81,7 @@ SDF
     sleep 0.25
   done
   echo "TIMEOUT"
-  echo "ERROR: /world/${WORLD}/set_pose not available. Check that UserCommands is loaded." >&2
+  echo "ERROR: /world/${WORLD}/set_pose not available." >&2
   exit 1
 }
 
@@ -139,29 +149,7 @@ remove_model() {
 SDF_DIR=/tmp/lab06_spawn
 mkdir -p "$SDF_DIR"
 
-export BLOCK_SIZE BLOCK_MASS BLOCK_DENSITY
-BLOCK_MASS_COMPUTED=$(python3 - <<'PY'
-import os
-a=float(os.environ.get("BLOCK_SIZE","0.04"))
-dens=os.environ.get("BLOCK_DENSITY","").strip()
-if dens:
-    m=float(dens)*(a**3)
-else:
-    m=float(os.environ.get("BLOCK_MASS","0.02"))
-print(f"{m:.8f}")
-PY
-)
-export BLOCK_MASS_COMPUTED
-BLOCK_INERTIA=$(python3 - <<'PY'
-import os
-a=float(os.environ.get("BLOCK_SIZE","0.04"))
-m=float(os.environ.get("BLOCK_MASS_COMPUTED","0.02"))
-I=(m*(a**2))/6.0
-print(f"{I:.8e}")
-PY
-)
-export BLOCK_INERTIA
-
+# ---------- write table SDF ----------
 TABLE_SDF="${SDF_DIR}/table_${TABLE_SIZE_X}x${TABLE_SIZE_Y}x${TABLE_THICK}.sdf"
 cat > "$TABLE_SDF" <<EOF
 <?xml version="1.0" ?>
@@ -180,25 +168,54 @@ cat > "$TABLE_SDF" <<EOF
 </sdf>
 EOF
 
+# ---------- write a single block SDF ----------
+# Usage: write_cube_sdf <output_path> <size_m> <r> <g> <b>
+# Mass and inertia are computed inside python using only the size argument,
+# so no variable passing issues between bash and python.
 write_cube_sdf() {
-  local path="$1" r="$2" g="$3" b="$4"
+  local path="$1"
+  local size="$2"
+  local r="$3" g="$4" b="$5"
+
+  # Compute mass — uses BLOCK_MASS / BLOCK_DENSITY env vars + the size argument
+  local mass
+  mass=$(python3 -c "
+import os
+a = float('${size}')
+dens = os.environ.get('BLOCK_DENSITY', '').strip()
+if dens:
+    m = float(dens) * (a ** 3)
+else:
+    m = float(os.environ.get('BLOCK_MASS', '0.02'))
+print(f'{m:.8f}')
+")
+
+  # Compute inertia — uses the mass we just computed and the size argument
+  local inertia
+  inertia=$(python3 -c "
+a = float('${size}')
+m = float('${mass}')
+I = (m * (a ** 2)) / 6.0
+print(f'{I:.8e}')
+")
+
   cat > "$path" <<EOF
 <?xml version="1.0" ?>
 <sdf version="1.8">
-  <model name="cube_40mm">
+  <model name="cube_${size}m">
     <static>false</static>
     <link name="link">
       <inertial>
-        <mass>${BLOCK_MASS_COMPUTED}</mass>
+        <mass>${mass}</mass>
         <inertia>
-          <ixx>${BLOCK_INERTIA}</ixx>
-          <iyy>${BLOCK_INERTIA}</iyy>
-          <izz>${BLOCK_INERTIA}</izz>
+          <ixx>${inertia}</ixx>
+          <iyy>${inertia}</iyy>
+          <izz>${inertia}</izz>
           <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
         </inertia>
       </inertial>
       <collision name="c">
-        <geometry><box><size>${BLOCK_SIZE} ${BLOCK_SIZE} ${BLOCK_SIZE}</size></box></geometry>
+        <geometry><box><size>${size} ${size} ${size}</size></box></geometry>
         <surface>
           <friction>
             <ode>
@@ -225,7 +242,7 @@ write_cube_sdf() {
         </surface>
       </collision>
       <visual name="v">
-        <geometry><box><size>${BLOCK_SIZE} ${BLOCK_SIZE} ${BLOCK_SIZE}</size></box></geometry>
+        <geometry><box><size>${size} ${size} ${size}</size></box></geometry>
         <material>
           <ambient>${r} ${g} ${b} 1</ambient>
           <diffuse>${r} ${g} ${b} 1</diffuse>
@@ -237,45 +254,56 @@ write_cube_sdf() {
 EOF
 }
 
-CUBE_RED_SDF="${SDF_DIR}/cube_red.sdf";     write_cube_sdf "$CUBE_RED_SDF"     0.85 0.10 0.10
-CUBE_BLUE_SDF="${SDF_DIR}/cube_blue.sdf";   write_cube_sdf "$CUBE_BLUE_SDF"    0.10 0.10 0.85
-CUBE_YELL_SDF="${SDF_DIR}/cube_yellow.sdf"; write_cube_sdf "$CUBE_YELL_SDF"    0.90 0.85 0.10
+# ---------- generate all 5 block SDFs ----------
+#                                    path                         size           R     G     B
+CUBE_1_SDF="${SDF_DIR}/cube_1.sdf"; write_cube_sdf "$CUBE_1_SDF" "$BLOCK_SIZE_1" 0.85 0.10 0.10  # red
+CUBE_2_SDF="${SDF_DIR}/cube_2.sdf"; write_cube_sdf "$CUBE_2_SDF" "$BLOCK_SIZE_2" 0.10 0.10 0.85  # blue
+CUBE_3_SDF="${SDF_DIR}/cube_3.sdf"; write_cube_sdf "$CUBE_3_SDF" "$BLOCK_SIZE_3" 0.10 0.75 0.10  # green
+CUBE_4_SDF="${SDF_DIR}/cube_4.sdf"; write_cube_sdf "$CUBE_4_SDF" "$BLOCK_SIZE_4" 0.90 0.85 0.10  # yellow
+CUBE_5_SDF="${SDF_DIR}/cube_5.sdf"; write_cube_sdf "$CUBE_5_SDF" "$BLOCK_SIZE_5" 0.80 0.40 0.00  # orange
 
 # ---------- run ----------
 ensure_world
 
-echo "[spawn] Cleaning up previous lab06 entities…"
+echo "[spawn] Cleaning up previous lab06 entities..."
 remove_model lab06_table
-remove_model lab06_block_red
+remove_model lab06_block_1
+remove_model lab06_block_2
+remove_model lab06_block_3
+remove_model lab06_block_4
+remove_model lab06_block_5
 
-
+# ---------- spawn table ----------
 TABLE_CENTER_X="${TABLE_CENTER_X:-0.0}"
 TABLE_CENTER_Y="${TABLE_CENTER_Y:-0.0}"
-TABLE_CENTER_Z=$(python3 - <<PY
-top=${TABLE_TOP_Z}; th=${TABLE_THICK}
-print(top - th/2.0)
-PY
-)
+TABLE_CENTER_Z=$(python3 -c "print(${TABLE_TOP_Z} - ${TABLE_THICK}/2.0)")
 call_create "$TABLE_SDF" "lab06_table" "$TABLE_CENTER_X" "$TABLE_CENTER_Y" "$TABLE_CENTER_Z"
 echo "[spawn] Spawned table; top @ z=${TABLE_TOP_Z}"
 
-BLOCK_Z=$(python3 - <<PY
-top=${TABLE_TOP_Z}; sz=${BLOCK_SIZE}; drop=${BLOCK_DROP}
-print(top + sz/2.0 + drop)
-PY
-)
-call_create "$CUBE_RED_SDF"   "lab06_block_red"    "$X"  "0.0"        "$BLOCK_Z"
+# ---------- spawn 5 blocks side by side along the y-axis ----------
+# y positions are centered around 0: -2s, -1s, 0, +1s, +2s
+# where s = BLOCK_SPACING
 
-echo "[spawn] Cubes: size=${BLOCK_SIZE} m, mass=${BLOCK_MASS_COMPUTED} kg"
-echo "[spawn] Friction(mu,mu2,torsion)=(${BLOCK_MU},${BLOCK_MU2},${BLOCK_TORSION}), slip=(${BLOCK_SLIP1},${BLOCK_SLIP2})"
-echo "[spawn] Contact kp=${BLOCK_KP}, kd=${BLOCK_KD}, min_depth=${BLOCK_MIN_DEPTH}, max_vel=${BLOCK_MAX_VEL}"
-echo "[spawn] Spawned cubes at x=${X}, y=±${SPACING},0, z=${BLOCK_Z} in world '${WORLD}'."
+spawn_block() {
+  local sdf="$1" name="$2" size="$3" y="$4"
+  local z
+  z=$(python3 -c "print(${TABLE_TOP_Z} + float('${size}')/2.0 + ${BLOCK_DROP})")
+  call_create "$sdf" "$name" "$X" "$y" "$z"
+  echo "[spawn] Spawned $name (size=${size}m) at x=${X}, y=${y}, z=${z}"
+}
+
+Y1=$(python3 -c "print(f'{-2 * ${BLOCK_SPACING}:.4f}')")
+Y2=$(python3 -c "print(f'{-1 * ${BLOCK_SPACING}:.4f}')")
+Y3="0.0000"
+Y4=$(python3 -c "print(f'{ 1 * ${BLOCK_SPACING}:.4f}')")
+Y5=$(python3 -c "print(f'{ 2 * ${BLOCK_SPACING}:.4f}')")
+
+spawn_block "$CUBE_1_SDF" "lab06_block_1" "$BLOCK_SIZE_1" "$Y1"   # red
+spawn_block "$CUBE_2_SDF" "lab06_block_2" "$BLOCK_SIZE_2" "$Y2"   # blue
+spawn_block "$CUBE_3_SDF" "lab06_block_3" "$BLOCK_SIZE_3" "$Y3"   # green
+spawn_block "$CUBE_4_SDF" "lab06_block_4" "$BLOCK_SIZE_4" "$Y4"   # yellow
+spawn_block "$CUBE_5_SDF" "lab06_block_5" "$BLOCK_SIZE_5" "$Y5"   # orange
+
+echo "[spawn] Friction(mu,mu2,torsion)=(${BLOCK_MU},${BLOCK_MU2},${BLOCK_TORSION})"
+echo "[spawn] Contact kp=${BLOCK_KP}, kd=${BLOCK_KD}"
 echo "[spawn] Done."
-
-
-
-
-
-
-
-

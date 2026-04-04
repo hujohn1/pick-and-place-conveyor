@@ -21,8 +21,8 @@ setup(
         'test': ['pytest'],
     },
     entry_points={
-        'console_scripts': [
-            'pick_place = pick_place.scripts.pick_place:main',
-        ],
-    },
+    'console_scripts': [
+        'pick_place = pick_place.scripts.pick_place:main',
+    ],
+},
 )
