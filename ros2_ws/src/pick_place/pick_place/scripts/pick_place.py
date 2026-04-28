@@ -73,7 +73,7 @@ BELT_TRAVEL_DISTANCE = 1.0
 
 # Belt run time: stop belt slightly early so block doesn't overshoot y=0.0.
 # At 0.1 m/s, exact travel = 10s. We run for 9s so block stops ~y=0.1.
-BELT_TRAVEL_TIME = 13.0
+BELT_TRAVEL_TIME = 12.5
 
 # Fixed pickup point in the robot planning frame (all blocks arrive here).
 PICKUP_X = 0.45
@@ -106,7 +106,6 @@ import os
 CONVEYOR_FILES_DIR = os.path.expanduser(
     "~/workspaces/pick-and-place-conveyor/ros2_ws/src/mems-toolkit/conveyor_files"
 )
-
 
 # ==============================================================================
 #  HELPER: make_pose
@@ -227,7 +226,6 @@ class PickAndPlaceNode(Node):
         msg.data = 0.0
         self._belt_pub.publish(msg)
         self.get_logger().info("Belt stopped")
-
 
     # ==========================================================================
     #  BLOCK SPAWNING
@@ -507,28 +505,23 @@ class PickAndPlaceNode(Node):
         self.get_logger().info("Starting conveyor pick-and-place for all 5 blocks.")
         time.sleep(3.0)  # wait for MoveIt services
 
-        # Reset the conveyor belt to its original position by respawning it
-        self.get_logger().info("Respawning conveyor belt to reset surface position...")
-        self._respawn_belt()
-        time.sleep(2.0)
-
         self.move_to_joints(self.j_retract)
 
-        for i in range(1):  # TODO: change back to range(len(self.blocks)) for all 5 blocks
-            self.get_logger().info(f"=== Block {i+1}/5: spawning on belt ===")
+        for i in range(len(self.blocks)):
+            self.get_logger().info(f"=== Block {i+1}/{len(self.blocks)}: resetting belt ===")
+
+            # Respawn belt to reset surface position before each block
+            self._respawn_belt()
+            time.sleep(2.0)
 
             # Spawn block at belt input end
+            self.get_logger().info(f"=== Block {i+1}/{len(self.blocks)}: spawning on belt ===")
             self.spawn_block_on_belt(i)
             time.sleep(0.5)
 
-            # Start belt and wait for block to arrive at pickup
+            # Run belt for BELT_TRAVEL_TIME seconds to deliver block to pickup point
             self.belt_start()
-            self.get_logger().info(
-                f"Belt running — waiting {BELT_TRAVEL_TIME:.1f}s for block to arrive..."
-            )
             time.sleep(BELT_TRAVEL_TIME)
-
-            # Stop belt before picking
             self.belt_stop()
             time.sleep(1.0)  # let block settle
 
@@ -543,7 +536,6 @@ class PickAndPlaceNode(Node):
                 return
 
         self.get_logger().info("All 5 blocks placed successfully!")
-        self.belt_stop()
         self.move_to_joints(self.j_retract)
 
 
