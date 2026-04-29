@@ -22,6 +22,9 @@ def generate_launch_description():
     gazebo_launch_file = os.path.join(
         get_package_share_directory('gazebo_ros'), 'launch', 'gazebo.launch.py'
     )
+    world_file = os.path.join(
+        get_package_share_directory('ur5_simulation'), 'worlds', 'tableandred2.world'
+    )
 
     moveit_config = (
         MoveItConfigsBuilder("custom_robot", package_name="ur5_camera_gripper_moveit_config")
@@ -51,7 +54,7 @@ def generate_launch_description():
             'debug': 'false',
             'gui': 'true',
             'paused': 'true',
-            #'world' : world_file
+            'world' : world_file
         }.items()
     )
 
