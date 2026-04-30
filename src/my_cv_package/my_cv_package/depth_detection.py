@@ -50,8 +50,9 @@ class CubeDetector(Node):
         self.lower_green = np.array([40, 50, 50])
         self.upper_green = np.array([80, 255, 255])
 
-        self.lower_blue = np.array([90, 50, 50])
-        self.upper_blue = np.array([130, 255, 255])
+       
+        self.lower_blue = np.array([100, 40, 20])
+        self.upper_blue = np.array([130, 255, 120])
 
         self.kernel = np.ones((5, 5), np.uint8)
 
