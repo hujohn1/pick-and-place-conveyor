@@ -1,43 +1,5 @@
 #!/usr/bin/env python3
-"""
-================================================================================
-  pick_place.py — Kinova Gen3 Lite Pick & Place with Conveyor Belt
-================================================================================
 
-  WHAT THIS DOES:
-    - Controls a conveyor belt to deliver blocks one at a time to the pickup point
-    - Picks up each block as it arrives and places it at a unique location
-    - Automatically adjusts grasp height based on each block's size
-    - Uses MoveIt2 for motion planning and GripperInterface for grasping
-
-  HOW TO RUN:
-    1. Launch the robot/simulator and MoveIt:
-         ros2 launch kortex_bringup kortex_sim_control.launch.py sim_gazebo:=true ...
-    2. Spawn the conveyor belt:
-         bash spawn_conveyor.sh
-    3. Start the ros_gz_bridge (new terminal):
-         bash start_bridge.sh
-    4. Add the planning scene:
-         ros2 run pick_place pick_place --ros-args -p task:=add_scene
-    5. Run the task:
-         ros2 run pick_place pick_place --ros-args -p task:=pick_place_all
-
-  AVAILABLE TASKS (passed via -p task:=<name>):
-    home            — move all joints to zero position
-    retract         — move to a safe retracted pose
-    add_scene       — add table and conveyor collision to MoveIt scene
-    pick_place_all  — run the full conveyor pick-and-place sequence
-
-  CONVEYOR OPERATION:
-    - Belt moves at BELT_SPEED (m/s, negative = toward robot in -X direction)
-    - Blocks spawn at the input end (x=1.5) and travel to the pickup point (x=0.45)
-    - Travel distance ~1.05m at 0.1 m/s = ~10.5 seconds per block
-    - Belt stops for each pick, then resumes for the next block
-
-  GRASP HEIGHT CALCULATION:
-    grasp_height = GRASP_HEIGHT_BASE + (block_size - GRASP_SIZE_BASE) / 2.0
-================================================================================
-"""
 
 import time
 import threading
@@ -53,10 +15,8 @@ from pymoveit2 import MoveIt2
 from pymoveit2.gripper_interface import GripperInterface
 
 
-# ==============================================================================
-#  CONFIGURATION
-# ==============================================================================
 
+#  CONFIGURATION
 # Table top z in robot planning frame — must match spawn_blocks.sh TABLE_TOP_Z
 TABLE_TOP_Z = -0.0001
 
@@ -107,9 +67,7 @@ CONVEYOR_FILES_DIR = os.path.expanduser(
     "~/workspaces/pick-and-place-conveyor/ros2_ws/src/mems-toolkit/conveyor_files"
 )
 
-# ==============================================================================
 #  HELPER: make_pose
-# ==============================================================================
 
 def make_pose(x, y, z, qx, qy, qz, qw) -> Pose:
     p = Pose()
@@ -123,9 +81,7 @@ def make_pose(x, y, z, qx, qy, qz, qw) -> Pose:
     return p
 
 
-# ==============================================================================
 #  MAIN NODE
-# ==============================================================================
 
 class PickAndPlaceNode(Node):
 
@@ -134,9 +90,7 @@ class PickAndPlaceNode(Node):
 
         self.declare_parameter("task", "home")
 
-        # ----------------------------------------------------------------------
         #  MOVEIT2
-        # ----------------------------------------------------------------------
         self.moveit2 = MoveIt2(
             node=self,
             joint_names=["joint_1", "joint_2", "joint_3",
@@ -146,9 +100,7 @@ class PickAndPlaceNode(Node):
             group_name="arm",
         )
 
-        # ----------------------------------------------------------------------
         #  GRIPPER
-        # ----------------------------------------------------------------------
         try:
             self.gripper = GripperInterface(
                 node=self,
@@ -163,15 +115,11 @@ class PickAndPlaceNode(Node):
             self.get_logger().warn(f"GripperInterface initialization failed: {e}")
             self.gripper = None
 
-        # ----------------------------------------------------------------------
         #  CONVEYOR BELT PUBLISHER
         #  Publishes to /conveyor_belt/cmd_vel (bridged to gz via ros_gz_bridge)
-        # ----------------------------------------------------------------------
         self._belt_pub = self.create_publisher(Float64, "/conveyor_belt/cmd_vel", 10)
 
-        # ----------------------------------------------------------------------
         #  SCENE / BLOCK DEFINITIONS
-        # ----------------------------------------------------------------------
         self.table_center_z = TABLE_TOP_Z - 0.05 / 2.0
 
         # Format: (size_m, close_position)
@@ -193,15 +141,11 @@ class PickAndPlaceNode(Node):
             (0.80, 0.40, 0.00),  # orange
         ]
 
-        # ----------------------------------------------------------------------
         #  JOINT CONFIGURATIONS
-        # ----------------------------------------------------------------------
         self.j_home    = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.j_retract = [0.40, 0.02, 2.27, -1.57, -0.84, 1.97]
 
-        # ----------------------------------------------------------------------
         #  TOUCH LINKS
-        # ----------------------------------------------------------------------
         self.touch_links = [
             "end_effector_link",
             "right_finger_bottom_link",
@@ -209,9 +153,7 @@ class PickAndPlaceNode(Node):
         ]
 
 
-    # ==========================================================================
     #  BELT CONTROL
-    # ==========================================================================
 
     def belt_start(self):
         """Start the conveyor belt moving toward the robot."""
@@ -227,9 +169,7 @@ class PickAndPlaceNode(Node):
         self._belt_pub.publish(msg)
         self.get_logger().info("Belt stopped")
 
-    # ==========================================================================
     #  BLOCK SPAWNING
-    # ==========================================================================
 
     def spawn_block_on_belt(self, block_index: int):
         """
@@ -350,17 +290,13 @@ class PickAndPlaceNode(Node):
             self.get_logger().error(f"Failed to spawn block: {e}")
 
 
-    # ==========================================================================
     #  GRASP HEIGHT
-    # ==========================================================================
 
     def compute_grasp_height(self, block_size: float) -> float:
         return GRASP_HEIGHT_BASE + (block_size - GRASP_SIZE_BASE) / 2.0
 
 
-    # ==========================================================================
     #  MOTION WRAPPERS
-    # ==========================================================================
 
     def move_to_joints(self, joint_positions):
         self.moveit2.move_to_configuration(joint_positions=joint_positions)
@@ -391,9 +327,7 @@ class PickAndPlaceNode(Node):
         self.gripper.close()
 
 
-    # ==========================================================================
     #  SCENE SETUP
-    # ==========================================================================
 
     def add_scene(self):
         """Add table collision box to the MoveIt planning scene."""
@@ -412,9 +346,7 @@ class PickAndPlaceNode(Node):
         self.get_logger().info("Planning scene set up.")
 
 
-    # ==========================================================================
     #  SINGLE BLOCK PICK AND PLACE (from conveyor pickup point)
-    # ==========================================================================
 
     def pick_and_place_block(self, block_index: int) -> bool:
         """
@@ -486,9 +418,7 @@ class PickAndPlaceNode(Node):
         return True
 
 
-    # ==========================================================================
     #  TASK: PICK AND PLACE ALL 5 BLOCKS VIA CONVEYOR
-    # ==========================================================================
 
     def task_pick_place_all(self):
         """
@@ -504,6 +434,12 @@ class PickAndPlaceNode(Node):
         """
         self.get_logger().info("Starting conveyor pick-and-place for all 5 blocks.")
         time.sleep(3.0)  # wait for MoveIt services
+
+        # Remove any blocks left over from a previous run
+        self.get_logger().info("Cleaning up any existing blocks...")
+        for i in range(len(self.blocks)):
+            self._gz_remove_model(f"lab06_block_{i + 1}")
+        time.sleep(0.5)
 
         self.move_to_joints(self.j_retract)
 
@@ -539,9 +475,7 @@ class PickAndPlaceNode(Node):
         self.move_to_joints(self.j_retract)
 
 
-    # ==========================================================================
     #  UTILITY TASKS
-    # ==========================================================================
 
     def task_home(self):
         self.move_to_joints(self.j_home)
@@ -553,9 +487,7 @@ class PickAndPlaceNode(Node):
         self.add_scene()
 
 
-# ==============================================================================
 #  ENTRY POINT
-# ==============================================================================
 
 def main(args=None):
     rclpy.init(args=args)
