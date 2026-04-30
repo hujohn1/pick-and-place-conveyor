@@ -1,0 +1,213 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <model name="conveyor_belt">
+
+    <!-- Static base frame — oriented along Y axis, anchored to world -->
+    <link name="belt_frame">
+      <inertial>
+        <mass>100.0</mass>
+        <inertia>
+          <ixx>1.0</ixx><iyy>1.0</iyy><izz>1.0</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <!-- Main frame collision -->
+      <collision name="frame_col">
+        <geometry>
+          <!-- 0.2m wide (X), 2.2m long (Y), 0.02m thick (Z) -->
+          <box><size>0.2 2.2 0.02</size></box>
+        </geometry>
+      </collision>
+
+      <!-- Main frame visual -->
+      <visual name="frame_vis">
+        <geometry>
+          <box><size>0.2 2.2 0.02</size></box>
+        </geometry>
+        <material>
+          <ambient>0.35 0.35 0.35 1</ambient>
+          <diffuse>0.35 0.35 0.35 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- Roller at far end (y=+1.1) — cylinder oriented along X -->
+      <visual name="roller_far">
+        <pose>0 1.1 0 0 1.5708 0</pose>
+        <geometry>
+          <cylinder><radius>0.015</radius><length>0.2</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.55 0.55 0.6 1</ambient>
+          <diffuse>0.55 0.55 0.6 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- Roller at near end (y=-1.1) — cylinder oriented along X -->
+      <visual name="roller_near">
+        <pose>0 -1.1 0 0 1.5708 0</pose>
+        <geometry>
+          <cylinder><radius>0.015</radius><length>0.2</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.55 0.55 0.6 1</ambient>
+          <diffuse>0.55 0.55 0.6 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- Left side rail (x=+0.105) -->
+      <visual name="rail_left">
+        <pose>0.105 0 0.005 0 0 0</pose>
+        <geometry>
+          <box><size>0.01 2.2 0.03</size></box>
+        </geometry>
+        <material>
+          <ambient>0.4 0.4 0.4 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- Right side rail (x=-0.105) -->
+      <visual name="rail_right">
+        <pose>-0.105 0 0.005 0 0 0</pose>
+        <geometry>
+          <box><size>0.01 2.2 0.03</size></box>
+        </geometry>
+        <material>
+          <ambient>0.4 0.4 0.4 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- 4 support legs evenly spaced along the belt -->
+      <visual name="leg_0">
+        <pose>0 -0.825 -0.085 0 0 0</pose>
+        <geometry>
+          <box><size>0.025 0.025 0.15</size></box>
+        </geometry>
+        <material>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.3 0.3 0.3 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="leg_1">
+        <pose>0 -0.275 -0.085 0 0 0</pose>
+        <geometry>
+          <box><size>0.025 0.025 0.15</size></box>
+        </geometry>
+        <material>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.3 0.3 0.3 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="leg_2">
+        <pose>0 0.275 -0.085 0 0 0</pose>
+        <geometry>
+          <box><size>0.025 0.025 0.15</size></box>
+        </geometry>
+        <material>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.3 0.3 0.3 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="leg_3">
+        <pose>0 0.825 -0.085 0 0 0</pose>
+        <geometry>
+          <box><size>0.025 0.025 0.15</size></box>
+        </geometry>
+        <material>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.3 0.3 0.3 1</diffuse>
+        </material>
+      </visual>
+
+    </link>
+
+    <!-- Moving belt surface — sits on top of frame, slides along Y -->
+    <link name="belt_surface">
+      <pose>0 0 0.0125 0 0 0</pose>
+      <inertial>
+        <mass>1.0</mass>
+        <inertia>
+          <ixx>0.01</ixx><iyy>0.01</iyy><izz>0.01</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="surface_col">
+        <geometry>
+          <!-- Thin sliding surface: 0.18m wide (X), 2.2m long (Y), 0.005m thick (Z) -->
+          <box><size>0.18 2.2 0.005</size></box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>100.0</mu>
+              <mu2>100.0</mu2>
+              <fdir1>0 1 0</fdir1>
+            </ode>
+            <torsional>
+              <coefficient>1.0</coefficient>
+              <use_patch_radius>true</use_patch_radius>
+              <patch_radius>0.05</patch_radius>
+            </torsional>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1e6</kp>
+              <kd>100.0</kd>
+              <max_vel>0.5</max_vel>
+              <min_depth>1e-5</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name="surface_vis">
+        <geometry>
+          <box><size>0.18 2.2 0.005</size></box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.15 0.15 0.15 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Pins belt_frame to world -->
+    <joint name="world_fixed" type="fixed">
+      <parent>world</parent>
+      <child>belt_frame</child>
+    </joint>
+
+    <!-- Belt surface slides along Y axis -->
+    <joint name="belt_joint" type="prismatic">
+      <parent>belt_frame</parent>
+      <child>belt_surface</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-100</lower>
+          <upper>100</upper>
+          <effort>1000</effort>
+          <velocity>2.0</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.1</damping>
+          <friction>0.0</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <!-- JointController: controls belt_joint velocity -->
+    <plugin
+      filename="gz-sim-joint-controller-system"
+      name="gz::sim::systems::JointController">
+      <joint_name>belt_joint</joint_name>
+      <topic>/conveyor_belt/cmd_vel</topic>
+      <use_force_commands>false</use_force_commands>
+    </plugin>
+
+  </model>
+</sdf>
